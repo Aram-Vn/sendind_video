@@ -1,14 +1,40 @@
-#include <cerrno>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
 #include <libevdev-1.0/libevdev/libevdev.h>
+#include <map>
+#include <string>
 #include <unistd.h>
+
+// Gimbal mapping for left and right sticks
+std::map<int, std::string> gimbal_map = {
+    { 2, "Right Gimbal Throttle" }, // Axis 0
+    { 3, "Right Gimbal Yaw" },      // Axis 1
+    { 1, "Left Gimbal Pitch" },     // Axis 2
+    { 0, "Left Gimbal Roll" },      // Axis 3
+    { 4, "SE 3" },
+    { 6, "SB 3" },
+    { 5, "SF 3" },
+};
+
+void print_event(struct input_event& ev)
+{
+    if (ev.type == EV_ABS)
+    {
+        if (gimbal_map.find(ev.code) != gimbal_map.end())
+        {
+            std::cout << gimbal_map[ev.code] << " movement: " << ev.value << std::endl;
+        }
+        else
+        {
+            std::cout << "Axis movement (code " << ev.code << "): " << ev.value << std::endl;
+        }
+    }
+}
 
 int main()
 {
-    const char* device_path = "/dev/input/event21"; // Update this if necessary
-    int         fd          = open(device_path, O_RDONLY | O_NONBLOCK);
+    int fd = open("/dev/input/event21", O_RDONLY | O_NONBLOCK);
     if (fd < 0)
     {
         std::cerr << "Failed to open device: " << strerror(errno) << std::endl;
@@ -20,32 +46,22 @@ int main()
     if (rc < 0)
     {
         std::cerr << "Failed to init libevdev: " << strerror(-rc) << std::endl;
-        close(fd);
         return 1;
     }
 
-    std::cout << "Input device: " << libevdev_get_name(dev) << "\n";
-    std::cout << "ID: bus=0x" << std::hex << libevdev_get_id_bustype(dev) << ", vendor=0x"
-              << libevdev_get_id_vendor(dev) << ", product=0x" << libevdev_get_id_product(dev) << std::dec << "\n";
+    std::cout << "Input device name: " << libevdev_get_name(dev) << std::endl;
 
-    struct input_event ev; // Declare the input_event structure
-
-    // Main loop to read events
     while (true)
     {
-        int rc = libevdev_next_event(dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
+        struct input_event ev;
+        int                rc = libevdev_next_event(dev, LIBEVDEV_READ_FLAG_NORMAL, &ev);
         if (rc == LIBEVDEV_READ_STATUS_SUCCESS)
         {
-            // Handle the joystick event
-            std::cout << "Event: type=" << ev.type << ", code=" << ev.code << ", value=" << ev.value << "\n";
+            print_event(ev);
         }
-        else if (rc == LIBEVDEV_READ_STATUS_SYNC)
-        {
-            std::cout << "Event sync: " << strerror(rc) << "\n";
-        }
+        usleep(10000); // Sleep for 10ms to reduce CPU usage
     }
 
-    // Clean up
     libevdev_free(dev);
     close(fd);
     return 0;
