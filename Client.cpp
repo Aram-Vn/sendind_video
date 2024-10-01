@@ -62,7 +62,7 @@ int main()
             break;
         }
 
-        usleep(30000);
+        usleep(30000); // 30 fps
     }
 
     close(sock);
