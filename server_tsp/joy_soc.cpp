@@ -11,10 +11,10 @@
 
 // Gimbal mapping for left and right sticks
 std::map<int, std::string> gimbal_map = {
-    { 2, "Right Gimbal Throttle" }, // Axis 0
-    { 3, "Right Gimbal Yaw" },      // Axis 1
-    { 1, "Left Gimbal Pitch" },     // Axis 5
-    { 0, "Left Gimbal Roll" },      // Axis 3
+    { 0, "Left Gimbal Roll" },
+    { 1, "Left Gimbal Pitch" },
+    { 2, "Right Gimbal Throttle" },
+    { 3, "Right Gimbal Yaw" },
     { 4, "SE 3" },
     { 6, "SB 3" },
     { 5, "SF 3" },
@@ -64,7 +64,7 @@ int main()
         return 1;
     }
 
-    int fd = open("/dev/input/event21", O_RDONLY | O_NONBLOCK);
+    int fd = open("/dev/input/event22", O_RDONLY | O_NONBLOCK);
     if (fd < 0)
     {
         std::cerr << "Failed to open device: " << strerror(errno) << std::endl;
