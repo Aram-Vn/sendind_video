@@ -2,6 +2,25 @@
 ```bash
  g++ -o joystick_reader joystick_reader.cpp -I/usr/include/libevdev-1.0 -levdev
 ```
+
+```
+e.g on PI 1
+
+auto eth0
+iface eth0 inet static
+address 192.168.1.5
+netmask 255.255.255.0
+gateway 192.168.1.6
+on PI 2
+
+auto eth0
+iface eth0 inet static
+address 192.168.1.6
+netmask 255.255.255.0
+gateway 192.168.1.5
+```
+
+
 ```
 interface eth0
 static ip_address=192.168.1.11/24
