@@ -16,9 +16,17 @@ int main()
 
     // Set up the server address
     sockaddr_in server_addr;
-    server_addr.sin_family      = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;  // Bind to any available address
-    server_addr.sin_port        = htons(8080); // Port number
+    server_addr.sin_family = AF_INET;
+
+    // Bind to the specific IP address of the Raspberry Pi
+    if (inet_pton(AF_INET, "192.168.27.20", &server_addr.sin_addr) <= 0)
+    {
+        std::cerr << "Invalid IP address: " << strerror(errno) << std::endl;
+        close(sockfd);
+        return 1;
+    }
+
+    server_addr.sin_port = htons(8080); // Port number
 
     // Bind the socket to the address
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
@@ -36,7 +44,7 @@ int main()
         return 1;
     }
 
-    std::cout << "Waiting for connections on port 8080..." << std::endl;
+    std::cout << "Waiting for connections on 192.168.27.20:8080..." << std::endl;
 
     // Accept a connection
     sockaddr_in client_addr;
