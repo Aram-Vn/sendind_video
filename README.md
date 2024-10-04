@@ -41,3 +41,34 @@ iface eth0 inet static
 address 192.168.1.6
 netmask 255.255.255.0
 ```
+
+```
+from pymavlink import mavutil
+
+# Establish a connection to the Pixhawk (serial port or UDP)
+master = mavutil.mavlink_connection('/dev/ttyAMA0', baud=57600)
+
+# Wait for a heartbeat to ensure communication
+master.wait_heartbeat()
+
+# Example to control the gimbal (set pitch, roll, yaw)
+pitch = 30.0  # Pitch angle in degrees
+roll = 0.0    # Roll angle in degrees
+yaw = 45.0    # Yaw angle in degrees
+
+# Send MAV_CMD_DO_MOUNT_CONTROL message
+master.mav.command_long_send(
+    master.target_system,      # target system
+    master.target_component,   # target component
+    mavutil.mavlink.MAV_CMD_DO_MOUNT_CONTROL,  # Command ID
+    0,  # Confirmation (0 = first time, 1+ = resend)
+    pitch,  # Pitch (in degrees)
+    roll,   # Roll (in degrees)
+    yaw,    # Yaw (in degrees)
+    0, 0, 0,  # Unused parameters
+    mavutil.mavlink.MAV_MOUNT_MODE_MAVLINK_TARGETING  # Gimbal mount mode
+)
+
+print("Gimbal command sent")
+```
+
