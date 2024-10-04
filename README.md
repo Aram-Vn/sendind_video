@@ -71,4 +71,55 @@ master.mav.command_long_send(
 
 print("Gimbal command sent")
 ```
+```
+import pigpio
+import time
+
+# Set up pigpio
+pi = pigpio.pi()
+
+if not pi.connected:
+    print("Failed to connect to pigpio daemon.")
+    exit()
+
+# Define GPIO pins
+TX_PIN = 23  # Example TX pin
+
+# Start the serial connection
+pi.set_mode(TX_PIN, pigpio.OUTPUT)
+
+# Prepare the S-BUS frame
+sbus_frame = bytearray(25)
+sbus_frame[0] = 0x0F  # Start byte
+sbus_frame[24] = 0x00  # End byte
+
+# Set channel values (0-2047) for 16 channels
+for i in range(16):
+    value = 1500  # Channel value set to 1500
+    if i < 8:
+        sbus_frame[i * 2 + 1] = value & 0xFF       # Low byte for channels 1-8
+        sbus_frame[i * 2 + 2] = (value >> 8) & 0x07  # High byte for channels 1-8
+    else:
+        sbus_frame[(i - 8) * 2 + 9] = value & 0xFF      # Low byte for channels 9-16
+        sbus_frame[(i - 8) * 2 + 10] = (value >> 8) & 0x07  # High byte for channels 9-16
+
+# Function to continuously send S-BUS frames
+def send_sbus():
+    while True:
+        pi.write(TX_PIN, 1)  # Set TX high (idle)
+        time.sleep(0.00001)  # Small delay
+        for byte in sbus_frame:
+            for i in range(8):
+                pi.write(TX_PIN, (byte >> (7 - i)) & 1)  # Send each bit
+                time.sleep(0.00001)  # Adjust timing as needed
+        time.sleep(0.02)  # Wait 20 ms before sending the next frame
+        print("S-BUS frame sent with all channels set to 1500.")
+
+try:
+    send_sbus()
+except KeyboardInterrupt:
+    pass
+finally:
+    pi.stop()
+```
 
