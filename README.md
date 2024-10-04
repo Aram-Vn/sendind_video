@@ -85,34 +85,47 @@ if not pi.connected:
 # Define GPIO pins
 TX_PIN = 23  # Example TX pin
 
-# Start the serial connection
+# Set TX pin as output
 pi.set_mode(TX_PIN, pigpio.OUTPUT)
 
 # Prepare the S-BUS frame
 sbus_frame = bytearray(25)
 sbus_frame[0] = 0x0F  # Start byte
-sbus_frame[24] = 0x00  # End byte
+sbus_frame[24] = 0x00  # End byte (no failsafe/lost frame)
 
-# Set channel values (0-2047) for 16 channels
-for i in range(16):
-    value = 1500  # Channel value set to 1500
-    if i < 8:
-        sbus_frame[i * 2 + 1] = value & 0xFF       # Low byte for channels 1-8
-        sbus_frame[i * 2 + 2] = (value >> 8) & 0x07  # High byte for channels 1-8
-    else:
-        sbus_frame[(i - 8) * 2 + 9] = value & 0xFF      # Low byte for channels 9-16
-        sbus_frame[(i - 8) * 2 + 10] = (value >> 8) & 0x07  # High byte for channels 9-16
+# Set channel values (0-2047 range) for 16 channels
+channel_values = [1500] * 16  # Example values, 1500 for all channels
 
-# Function to continuously send S-BUS frames
+def pack_sbus_frame():
+    # Clear frame data between start and end byte
+    for i in range(1, 24):
+        sbus_frame[i] = 0
+
+    # Pack 16 channels (11 bits each) into 22 data bytes
+    bit_idx = 0
+    for channel in channel_values:
+        for i in range(11):
+            if channel & (1 << i):
+                sbus_frame[1 + (bit_idx // 8)] |= (1 << (bit_idx % 8))
+            bit_idx += 1
+
+    # Frame[23] is reserved for flags (we'll leave it at 0x00 for now)
+    # Frame[24] is the end byte (0x00 or 0x04 for failsafe)
+
 def send_sbus():
     while True:
-        pi.write(TX_PIN, 1)  # Set TX high (idle)
-        time.sleep(0.00001)  # Small delay
+        # Prepare S-BUS frame with current channel values
+        pack_sbus_frame()
+
+        # Send the frame
         for byte in sbus_frame:
+            # Send each byte (inverted, since S-BUS uses inverted signal)
             for i in range(8):
-                pi.write(TX_PIN, (byte >> (7 - i)) & 1)  # Send each bit
-                time.sleep(0.00001)  # Adjust timing as needed
-        time.sleep(0.02)  # Wait 20 ms before sending the next frame
+                bit = (byte >> (7 - i)) & 1
+                pi.write(TX_PIN, not bit)  # Inverted bit
+                time.sleep(0.00001)  # Bit duration, adjust if necessary
+
+        time.sleep(0.02)  # S-BUS frame rate is every 20 ms
         print("S-BUS frame sent with all channels set to 1500.")
 
 try:
@@ -121,5 +134,6 @@ except KeyboardInterrupt:
     pass
 finally:
     pi.stop()
+
 ```
 
