@@ -136,4 +136,45 @@ finally:
     pi.stop()
 
 ```
+```
+import time
+from pymavlink import mavutil
 
+# Create a connection to the Pixhawk
+# Change the serial port and baudrate as needed
+master = mavutil.mavlink_connection('/dev/ttyAMA0', baud=57600)
+
+# Wait for a heartbeat from the Pixhawk to ensure connection
+master.wait_heartbeat()
+print("Heartbeat from Pixhawk received.")
+
+# Function to send RC channel override commands
+def send_rc_override(ch1=1500, ch2=1500, ch3=1500, ch4=1500):
+    # Define RC channel values (0-8, or None to leave unchanged)
+    master.mav.rc_channels_override_send(
+        master.target_system,  # target system (Pixhawk)
+        master.target_component,  # target component (Pixhawk)
+        ch1,  # RC channel 1 (Throttle, 1500 is neutral)
+        ch2,  # RC channel 2 (Aileron)
+        ch3,  # RC channel 3 (Elevator)
+        ch4,  # RC channel 4 (Rudder)
+        1500,  # Channel 5 (1500 is neutral)
+        1500,  # Channel 6
+        1500,  # Channel 7
+        1500  # Channel 8
+    )
+
+# Example: Sending neutral values for the first 4 RC channels
+try:
+    while True:
+        send_rc_override(ch1=1500, ch2=1500, ch3=1500, ch4=1500)
+        print("RC override sent with neutral values.")
+        time.sleep(0.1)  # Send RC override every 100 ms
+except KeyboardInterrupt:
+    pass
+finally:
+    # Send a command to stop RC overrides (restore manual control)
+    send_rc_override(ch1=None, ch2=None, ch3=None, ch4=None)
+    print("RC override stopped, manual control restored.")
+
+```
